@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dice Clash</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        body {
+            height: 100vh;
+            overflow: hidden;
+            background-color: #121212;
+            color: white;
+        }
+
+        .player-panel {
+            height: 50vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.3s ease;
+            gap: 10px;
+        }
+
+        .player-0-panel {
+            background-color: #1a1a2e;
+        }
+
+        .player-1-panel {
+            background-color: #16213e;
+        }
+
+        .player-panel.active {
+            background-color: #0f3460;
+            box-shadow: inset 0 0 50px rgba(0, 255, 204, 0.15);
+        }
+
+        .name {
+            font-size: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .score {
+            font-size: 6rem;
+            font-weight: bold;
+            color: #00ffcc;
+            line-height: 1;
+        }
+
+        .center-console {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(20, 20, 20, 0.98);
+            padding: 25px;
+            border-radius: 15px;
+            border: 2px solid #00ffcc;
+            z-index: 100;
+            /* Ensures it stays on top */
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+            min-width: 240px;
+        }
+
+        .dice,
+        .trophy {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+        }
+
+        .dice {
+            background-color: white;
+        }
+
+        #victory-message {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #fca311;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            color: #fff;
+            background-color: #e94560;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: 0.2s;
+        }
+
+        /* Prevent clicking while rolling */
+        .btn:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+            transform: scale(1) !important;
+        }
+
+        .btn-pass {
+            background-color: #2a9d8f;
+        }
+
+        .btn-replay {
+            background-color: #fca311;
+            color: #000;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: scale(1.05);
+            filter: brightness(1.2);
+        }
+
+        .winner {
+            background-color: #2a9d8f !important;
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: rotate(0deg);
+            }
+
+            25% {
+                transform: rotate(15deg);
+            }
+
+            75% {
+                transform: rotate(-15deg);
+            }
+        }
+
+        .shake-active {
+            animation: shake 0.15s infinite;
+        }
+    </style>
+</head>
+
+<body>
+    <section class="player-panel player-0-panel active">
+        <h2 class="name" id="name-0">Player 1</h2>
+        <div class="score" id="score-0">0</div>
+    </section>
+
+    <section class="player-panel player-1-panel">
+        <div class="score" id="score-1">0</div>
+        <h2 class="name" id="name-1">Player 2</h2>
+    </section>
+
+    <div class="center-console">
+        <img src="" alt="Dice" class="dice" id="dice-display">
+        <img src="https://cdn-icons-png.flaticon.com/512/3112/3112946.png" alt="Trophy" class="trophy"
+            id="trophy-display" style="display: none;">
+        <p id="victory-message" style="display: none;"></p>
+        <button class="btn" id="btn-roll">ROLL ME</button>
+        <button class="btn btn-pass" id="btn-pass">PASS TURN</button>
+        <button class="btn btn-replay" id="btn-replay" style="display: none;">REPLAY</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const diceImages = [
+                '',
+                'https://upload.wikimedia.org/wikipedia/commons/1/1b/Dice-1-b.svg',
+                'https://upload.wikimedia.org/wikipedia/commons/5/5f/Dice-2-b.svg',
+                'https://upload.wikimedia.org/wikipedia/commons/b/b1/Dice-3-b.svg',
+                'https://upload.wikimedia.org/wikipedia/commons/f/fd/Dice-4-b.svg',
+                'https://upload.wikimedia.org/wikipedia/commons/0/08/Dice-5-b.svg',
+                'https://upload.wikimedia.org/wikipedia/commons/2/26/Dice-6-b.svg'
+            ];
+
+            let scores, activePlayer, isPlaying;
+
+            const diceDisplay = document.getElementById('dice-display');
+            const trophyDisplay = document.getElementById('trophy-display');
+            const victoryMsg = document.getElementById('victory-message');
+            const btnRoll = document.getElementById('btn-roll');
+            const btnPass = document.getElementById('btn-pass');
+            const btnReplay = document.getElementById('btn-replay');
+
+            function init() {
+                scores = [0, 0];
+                activePlayer = 0;
+                isPlaying = true;
+                document.getElementById('score-0').textContent = '0';
+                document.getElementById('score-1').textContent = '0';
+                document.getElementById('name-0').textContent = 'Player 1';
+                document.getElementById('name-1').textContent = 'Player 2';
+                document.querySelector('.player-0-panel').classList.remove('winner');
+                document.querySelector('.player-1-panel').classList.remove('winner');
+                document.querySelector('.player-0-panel').classList.add('active');
+                document.querySelector('.player-1-panel').classList.remove('active');
+                diceDisplay.style.display = 'block';
+                diceDisplay.src = diceImages[1];
+                trophyDisplay.style.display = 'none';
+                victoryMsg.style.display = 'none';
+                btnRoll.style.display = 'block';
+                btnPass.style.display = 'block';
+                btnRoll.disabled = false;
+                btnPass.disabled = false;
+                btnReplay.style.display = 'none';
+            }
+
+            init();
+
+            function switchPlayer() {
+                activePlayer = activePlayer === 0 ? 1 : 0;
+                document.querySelector('.player-0-panel').classList.toggle('active');
+                document.querySelector('.player-1-panel').classList.toggle('active');
+            }
+
+            btnRoll.addEventListener('click', function () {
+                if (isPlaying) {
+                    // Lock buttons during animation
+                    btnRoll.disabled = true;
+                    btnPass.disabled = true;
+                    diceDisplay.classList.add('shake-active');
+
+                    setTimeout(() => {
+                        diceDisplay.classList.remove('shake-active');
+                        const diceNum = Math.trunc(Math.random() * 6) + 1;
+                        diceDisplay.src = diceImages[diceNum];
+
+                        if (diceNum !== 1) {
+                            scores[activePlayer] += diceNum;
+
+                            if (scores[activePlayer] >= 100) {
+                                scores[activePlayer] = 100;
+                                document.getElementById(`score-${activePlayer}`).textContent = 100;
+                                isPlaying = false;
+                                document.querySelector(`.player-${activePlayer}-panel`).classList.add('winner');
+                                diceDisplay.style.display = 'none';
+                                btnRoll.style.display = 'none';
+                                btnPass.style.display = 'none';
+                                trophyDisplay.style.display = 'block';
+                                victoryMsg.style.display = 'block';
+                                victoryMsg.textContent = `Player ${activePlayer + 1} Wins!`;
+                                btnReplay.style.display = 'block';
+                            } else {
+                                document.getElementById(`score-${activePlayer}`).textContent = scores[activePlayer];
+                                // Unlock buttons
+                                btnRoll.disabled = false;
+                                btnPass.disabled = false;
+                            }
+                        } else {
+                            switchPlayer();
+                            btnRoll.disabled = false;
+                            btnPass.disabled = false;
+                        }
+                    }, 400);
+                }
+            });
+
+            btnPass.addEventListener('click', function () {
+                if (isPlaying) switchPlayer();
+            });
+
+            btnReplay.addEventListener('click', init);
+        });
+    </script>
+</body>
+
+</html>
